@@ -1,0 +1,24 @@
+{
+  "project": "Namma Space - Techfest 2026-27 (IIT Bombay)",
+  "sop_version": "1.0",
+  "capture_metadata": {
+    "venue_name": "Indoor Corporate & Innovation Floor (Sample Benchmark)",
+    "dimensions_meters": { "width_x": 24.0, "depth_z": 18.0, "ceiling_height_y": 3.0 },
+    "camera_settings": {
+      "resolution": "1920x1080",
+      "fps": 60,
+      "lens": "0.5x Ultra-Wide (13mm equiv)",
+      "auto_exposure_lock": true,
+      "optical_image_stabilization": false
+    },
+    "walking_speed_mps": 0.45,
+    "frame_overlap_percent": 75,
+    "extracted_keyframes": 164,
+    "mean_laplacian_sharpness": 184.6
+  },
+  "occupancy_grid": {
+    "cell_size_meters": 0.25,
+    "obstacle_inflation_meters": 0.32,
+    "slice_height_range_meters": [0.18, 1.85]
+  }
+}

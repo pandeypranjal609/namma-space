@@ -1,0 +1,56 @@
+[
+  {
+    "id": "poi-reception",
+    "name": "Reception & Welcome Desk",
+    "category": "Facility",
+    "description": "Main lobby check-in desk and visitor badge kiosk",
+    "x": 0.0,
+    "y": 1.35,
+    "z": 6.2
+  },
+  {
+    "id": "poi-meeting-4",
+    "name": "Meeting Room 4 (Boardroom)",
+    "category": "Room",
+    "description": "10-seat glass conference room with 4K display",
+    "x": -7.8,
+    "y": 1.4,
+    "z": -4.8
+  },
+  {
+    "id": "poi-sofas",
+    "name": "3-Seater Sofas (Lounge Zone)",
+    "category": "Furniture",
+    "description": "Collaborative lounge area with plush 3-seater sofas & coffee table",
+    "x": -7.5,
+    "y": 1.2,
+    "z": 4.5
+  },
+  {
+    "id": "poi-workstations",
+    "name": "Engineering Workstations Pod",
+    "category": "Equipment",
+    "description": "Open-plan dual-monitor developer desks",
+    "x": 7.4,
+    "y": 1.3,
+    "z": -4.5
+  },
+  {
+    "id": "poi-cafeteria",
+    "name": "Espresso Bar & Pantry",
+    "category": "Facility",
+    "description": "Refreshments counter, coffee machine, and high-top seating",
+    "x": 7.8,
+    "y": 1.35,
+    "z": 4.8
+  },
+  {
+    "id": "poi-innovation-hub",
+    "name": "Central Innovation Hub",
+    "category": "Room",
+    "description": "Central collaboration rotunda and demo stage",
+    "x": 0.0,
+    "y": 1.4,
+    "z": -0.5
+  }
+]

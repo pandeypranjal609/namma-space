@@ -1,0 +1,7 @@
+{
+  "mode": "sample_benchmark",
+  "hint": "Pass --input your_room_video.mp4 to reconstruct any smartphone video into 3D!",
+  "exported_ply_model": "C:\\Users\\COBUY\\Desktop\\namma-space\\test\\reconstructed_output\\sample_reconstructed_room.ply",
+  "sop_health_score": 96.2,
+  "sop_status": "PASS"
+}
