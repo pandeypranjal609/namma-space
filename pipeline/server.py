@@ -737,7 +737,7 @@ def process_scan_to_3d_scene(payload: dict) -> dict:
     }
 
 
-class ReconstructionRequestHandler(BaseHTTPRequestHandler):
+class handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         # Suppress noisy polling logs for /api/progress
         if "/api/progress" not in (args[0] if args else ""):
@@ -789,12 +789,8 @@ class ReconstructionRequestHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": "Endpoint not found"})
 
 
-# Vercel Python runtime entry point.
-handler = ReconstructionRequestHandler
-
-
 if __name__ == "__main__":
     port = 8000
     print(f"🚀 Namma Space Multi-Frame 3D Gaussian Splatting Server (ThreadingHTTPServer) listening on http://127.0.0.1:{port}")
-    server = ThreadingHTTPServer(("127.0.0.1", port), ReconstructionRequestHandler)
+    server = ThreadingHTTPServer(("127.0.0.1", port), handler)
     server.serve_forever()
