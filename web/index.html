@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Namma Space | Hybrid AI 3D Indoor Digital Twin &amp; Navigation Engine</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <!-- 3D WebGL Viewport -->
+  <div id="canvas-container"></div>
+
+  <!-- 3D Floating POI Labels Layer -->
+  <div id="poi-labels-container"></div>
+
+  <!-- Crosshair for First-Person Roaming / POI Tagging -->
+  <div id="crosshair" class="hidden">
+    <div class="crosshair-dot"></div>
+    <div id="crosshair-hint">WASD to Move • Shift to Sprint • ESC to Unlock</div>
+  </div>
+
+  <!-- Top Header Bar -->
+  <header class="hud-header">
+    <div class="brand">
+      <div class="brand-badge">3D</div>
+      <div>
+        <h1>Namma Space</h1>
+        <p class="subtitle">Hybrid AI Video-to-3D Digital Twin &amp; Indoor Navigation</p>
+      </div>
+    </div>
+
+    <!-- Spatial Search Bar -->
+    <div class="search-wrapper">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="search"
+        id="poi-search-input"
+        placeholder="Search rooms or items (e.g., 'Meeting Room 4', '3-Seater Sofa')... [Press /]"
+        autocomplete="off"
+      />
+      <div id="search-results-dropdown" class="search-dropdown hidden"></div>
+    </div>
+
+    <!-- Action Controls -->
+    <div class="header-actions">
+      <button id="btn-live-scan" class="btn btn-accent" title="Open Live Guided Camera Scanner with 360° Direction Ring & AI Backend">
+        📡 Live Guided Scan
+      </button>
+      <button id="btn-video-to-3d" class="btn btn-primary" title="Upload a smartphone video (.mp4/.mov) to process via AI Backend">
+        🎥 Video → AI 3D
+      </button>
+      <button id="btn-load-scaniverse" class="btn btn-secondary" title="Import a 3D mesh (.GLB / .PLY) exported from Scaniverse, Polycam, or 3D Scanner">
+        📦 Scaniverse .GLB
+      </button>
+      <button id="btn-first-person" class="btn btn-secondary" title="Enter First-Person WASD Walkthrough">
+        🎮 Walk (WASD)
+      </button>
+      <button id="btn-tag-mode" class="btn btn-secondary" title="Click anywhere in 3D space to add a POI">
+        📍 Tag POI
+      </button>
+      <button id="btn-ar-mode" class="btn btn-secondary" title="Launch Live Mobile Camera AR Navigation">
+        📱 AR Navigate
+      </button>
+      <button id="btn-toggle-sidebar" class="btn btn-ghost mobile-only" title="Toggle POI Drawer">
+        📋 POIs
+      </button>
+      <button id="btn-sop-modal" class="btn btn-ghost" title="View Capture SOP & Pipeline Info">
+        📋 SOP
+      </button>
+    </div>
+  </header>
+
+  <!-- Left Sidebar: POIs & Active Navigation Status -->
+  <aside id="hud-sidebar" class="hud-sidebar">
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Spatial Points of Interest</h2>
+        <span id="poi-count-badge" class="badge">0 POIs</span>
+      </div>
+      <p class="panel-subtext">Click any destination to compute an obstacle-free walking path or teleport directly.</p>
+      <div id="poi-list" class="poi-list"></div>
+    </div>
+
+    <!-- Active Navigation Card -->
+    <div id="nav-status-card" class="panel nav-card hidden">
+      <div class="nav-card-header">
+        <span class="pulse-dot"></span>
+        <div>
+          <span class="nav-label">ACTIVE INDOOR ROUTE</span>
+          <h3 id="nav-target-name">Destination</h3>
+        </div>
+      </div>
+      <div class="nav-metrics">
+        <div class="metric">
+          <span class="metric-label">Path Distance</span>
+          <strong id="nav-distance">0.0 m</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Est. Walk Time</span>
+          <strong id="nav-eta">0 sec</strong>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Waypoints</span>
+          <strong id="nav-waypoints">0 nodes</strong>
+        </div>
+      </div>
+      <div id="nav-turn-instruction" class="turn-banner">
+        Follow the glowing floor path around obstacles
+      </div>
+      <div class="nav-card-actions">
+        <button id="btn-auto-walk" class="btn btn-primary btn-sm">🚶 Auto-Walk Path</button>
+        <button id="btn-teleport-dest" class="btn btn-secondary btn-sm">⚡ Instant Jump</button>
+        <button id="btn-clear-nav" class="btn btn-danger btn-sm">✕ Clear</button>
+      </div>
+    </div>
+
+    <!-- Controls Cheat Sheet -->
+    <div class="panel controls-card desktop-only">
+      <h3>Controls &amp; Modes</h3>
+      <ul class="key-list">
+        <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> <span>Walk (First-Person)</span></li>
+        <li><kbd>Shift</kbd> <span>Sprint faster</span></li>
+        <li><kbd>Mouse</kbd> <span>Look / Orbit 3D space</span></li>
+        <li><kbd>/</kbd> <span>Focus spatial search</span></li>
+        <li><kbd>T</kbd> <span>Toggle POI Tagging mode</span></li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- Mobile On-Screen Touch Walking Pad -->
+  <div class="touch-dpad mobile-only">
+    <button type="button" class="dpad-btn dpad-up" data-dir="forward">▲</button>
+    <div class="dpad-mid">
+      <button type="button" class="dpad-btn dpad-left" data-dir="left">◀</button>
+      <button type="button" class="dpad-btn dpad-right" data-dir="right">▶</button>
+    </div>
+    <button type="button" class="dpad-btn dpad-down" data-dir="backward">▼</button>
+  </div>
+
+  <!-- Bottom Right: 2D Top-Down Occupancy & Pathfinding Radar Minimap -->
+  <div class="minimap-panel">
+    <div class="minimap-header">
+      <span>2D NavMesh &amp; Obstacle Radar</span>
+      <span id="player-coords" class="coords-text">X: 0.0, Z: 0.0</span>
+    </div>
+    <canvas id="minimap-canvas" width="200" height="200"></canvas>
+    <div class="minimap-legend">
+      <span><i class="dot dot-player"></i>You</span>
+      <span><i class="dot dot-poi"></i>POI</span>
+      <span><i class="dot dot-path"></i>A* Path</span>
+      <span><i class="dot dot-wall"></i>Obstacle</span>
+    </div>
+  </div>
+
+  <!-- Toast Notification Banner -->
+  <div id="toast-banner" class="toast hidden"></div>
+
+  <!-- SCANIVERSE-STYLE LIVE 3D CAMERA SCANNER OVERLAY -->
+  <div id="live-scanner-overlay" class="ar-overlay hidden">
+    <video id="scanner-video" autoplay playsinline muted></video>
+    <canvas id="scanner-hud-canvas"></canvas>
+
+    <div class="ar-top-bar">
+      <div class="ar-status" style="background: rgba(239, 68, 68, 0.9); padding: 4px 12px; border-radius: 999px;">
+        <span id="scanner-room-badge" style="color: #fff; font-weight: 700; letter-spacing: 0.06em;">🔴 SCANNING</span>
+      </div>
+      <span id="scanner-sector-count" class="badge">RANGE: 3.0 m • 0 Views</span>
+      <button type="button" id="btn-cancel-scanner" class="btn btn-danger btn-sm">✕ Cancel</button>
+    </div>
+
+    <div class="scanner-bottom-panel">
+      <div id="scanner-instruction" class="ar-direction">
+        🎯 Pan slowly left-to-right across the room or object, then tap Stop &amp; Process 3D
+      </div>
+      <div id="scanner-sub-status" class="ar-sub">
+        Full-screen camera active • Hold phone upright/level and sweep smoothly across angles.
+      </div>
+
+      <div class="scanner-actions">
+        <button type="button" id="btn-scan-mode" class="btn btn-secondary btn-sm" title="Cycle Scaniverse Depth Range (1.5m Desk/Object, 3.0m Zone, 5.0m Room)">
+          📏 RANGE: 3.0 m
+        </button>
+        <button type="button" id="btn-snap-manual" class="btn btn-secondary btn-sm">
+          📸 Snap View
+        </button>
+        <button type="button" id="btn-rotate-sim" class="btn btn-secondary btn-sm" title="Rotate +25° (Useful on Desktop)">
+          🔄 +25° Angle
+        </button>
+        <button type="button" id="btn-mark-doorway" class="btn btn-secondary btn-sm" title="Connect another room or zone">
+          🚪 + Zone
+        </button>
+        <label class="btn btn-secondary btn-sm" for="scanner-fallback-video" style="cursor:pointer;">
+          📹 Video
+          <input type="file" id="scanner-fallback-video" accept="video/*" capture="environment" hidden />
+        </label>
+        <button type="button" id="btn-finish-scan" class="btn btn-danger btn-sm" style="background: #ef4444; color: #fff; font-weight: 700;">
+          ⏹️ Stop &amp; Process 3D
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 0: Smartphone Video -> AI Backend 3D Reconstruction Studio -->
+  <dialog id="video-recon-dialog" closedby="any" aria-labelledby="video-recon-title" class="modal-dialog modal-wide">
+    <div class="modal-body">
+      <h2 id="video-recon-title">🎥 Video → AI Backend 3D Reconstruction</h2>
+      <p class="modal-desc">
+        Upload a recorded smartphone video (<code>.mp4</code>, <code>.mov</code>, <code>.webm</code>).
+        The frontend extracts sharp keyframes + optical-flow direction angles and sends them to the <strong>Python AI Backend (<code>pipeline/server.py</code>)</strong> running <strong>YOLOv8 + Floor-Wall Horizon Depth + Multi-Room Stitching</strong>!
+      </p>
+
+      <label class="file-dropzone" for="video-file-input">
+        <input type="file" id="video-file-input" accept="video/mp4,video/webm,video/quicktime,.mp4,.mov,.webm" hidden />
+        <div class="dropzone-content">
+          <span class="dropzone-icon">🎬</span>
+          <strong>Click to select an Indoor Smartphone Video (.MP4 / .MOV / .WEBM)</strong>
+          <span>Extracts Directional Keyframes → Sends to Python YOLOv8 + Depth Backend → Builds Clean 3D Rooms &amp; Furniture</span>
+        </div>
+      </label>
+
+      <!-- Live Reconstruction Progress Panel -->
+      <div id="video-recon-progress-box" class="recon-progress-box hidden">
+        <div class="recon-preview-row">
+          <img id="recon-frame-preview" alt="Extracted keyframe preview" class="recon-thumb" />
+          <div class="recon-status-col">
+            <div id="recon-stage-text" class="recon-stage-text">Initializing pipeline...</div>
+            <div class="progress-bar-track">
+              <div id="recon-progress-fill" class="progress-bar-fill" style="width: 0%"></div>
+            </div>
+            <div id="recon-metrics-summary" class="recon-metrics-summary">
+              Waiting for keyframe extraction...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="btn-open-load-glb" class="btn btn-secondary">📂 Load .GLB/.PLY</button>
+        <button type="button" id="btn-restore-default-from-vid" class="btn btn-ghost">Restore Demo Floor</button>
+        <button type="button" id="btn-close-video-recon" class="btn btn-primary">Done</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal 1: Add / Tag New POI Dialog -->
+  <dialog id="poi-dialog" closedby="any" aria-labelledby="poi-dialog-title" class="modal-dialog">
+    <form id="poi-form" method="dialog">
+      <h2 id="poi-dialog-title">📍 Tag New Spatial POI</h2>
+      <p class="modal-desc">Assign a searchable room or item label to the clicked 3D coordinate.</p>
+      <div class="form-group">
+        <label for="poi-name-input">POI Title / Label</label>
+        <input type="text" id="poi-name-input" required placeholder="e.g., Meeting Room 4, 3-Seater Sofas" />
+      </div>
+      <div class="form-group">
+        <label for="poi-category-input">Category</label>
+        <select id="poi-category-input">
+          <option value="Room">🏢 Room / Zone</option>
+          <option value="Furniture">🛋️ Furniture / Item</option>
+          <option value="Facility">🚪 Entrance / Exit / Facility</option>
+          <option value="Equipment">💻 Tech / Equipment</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="poi-desc-input">Description / Floor Note</label>
+        <input type="text" id="poi-desc-input" placeholder="e.g., Capacity 8 people, whiteboards available" />
+      </div>
+      <div class="coords-preview" id="poi-coords-preview">Coordinates: (0.0, 0.0, 0.0)</div>
+      <div class="modal-actions">
+        <button type="button" id="btn-cancel-poi" class="btn btn-ghost">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Spatial Tag</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Modal 2: Load Custom Reconstructed 3D Model (.glb / .gltf / .ply) -->
+  <dialog id="upload-dialog" closedby="any" aria-labelledby="upload-dialog-title" class="modal-dialog">
+    <div class="modal-body">
+      <h2 id="upload-dialog-title">📂 Load Existing 3D Scan (.GLB / .PLY)</h2>
+      <p class="modal-desc">
+        Load a 3D mesh (<code>.glb</code>, <code>.gltf</code>) or point-cloud (<code>.ply</code>) generated by <code>python pipeline/reconstruct.py</code>.
+      </p>
+      <label class="file-dropzone" for="model-file-input">
+        <input type="file" id="model-file-input" accept=".glb,.gltf,.ply" hidden />
+        <div class="dropzone-content">
+          <span class="dropzone-icon">📦</span>
+          <strong>Click to select a .GLB, .GLTF, or .PLY file</strong>
+          <span>Automatically extracts floor bounds &amp; obstacle occupancy grid</span>
+        </div>
+      </label>
+      <div class="modal-actions">
+        <button type="button" id="btn-reset-demo-scene" class="btn btn-secondary">Restore Default Digital Twin</button>
+        <button type="button" id="btn-close-upload" class="btn btn-ghost">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal 3: SOP & Pipeline Overview -->
+  <dialog id="sop-dialog" closedby="any" aria-labelledby="sop-dialog-title" class="modal-dialog modal-wide">
+    <div class="modal-body">
+      <h2 id="sop-dialog-title">📋 Namma Space Hybrid AI Architecture &amp; SOP</h2>
+      <div class="sop-grid">
+        <div class="sop-step">
+          <span class="step-num">Step 1 • Frontend Guided Recorder</span>
+          <h4>360° Direction Ring &amp; Telemetry</h4>
+          <p><code>src/liveScanner.js</code> coaches rotation speed, filters blur, and attaches <code>{yaw_deg, pitch_deg, pos_x, pos_z, is_doorway}</code> to each sharp keyframe.</p>
+        </div>
+        <div class="sop-step">
+          <span class="step-num">Step 2 • Python AI Backend</span>
+          <h4>YOLOv8n + Floor-Horizon Depth</h4>
+          <p><code>pipeline/server.py</code> runs pre-trained <strong>YOLOv8n</strong> + OpenCV structural segmentation to detect furniture (`sofa`, `chair`, `table`, `bed`, `cabinet`) and wall depth.</p>
+        </div>
+        <div class="sop-step">
+          <span class="step-num">Step 3 • Multi-Room Stitching</span>
+          <h4>Auto-Doorway &amp; Clean 3D Meshes</h4>
+          <p><code>src/semantic3DBuilder.js</code> stitches multiple rooms with walkable doorways and renders clean 3D furniture models instead of noisy point clouds.</p>
+        </div>
+        <div class="sop-step">
+          <span class="step-num">Step 4 • A* &amp; Live AR Navigation</span>
+          <h4>Obstacle-Aware Routing</h4>
+          <p>Real-time 8-way A* pathfinding around walls and AI-detected furniture, plus live smartphone rear-camera AR arrow overlays.</p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="btn-export-pois" class="btn btn-secondary">⬇️ Export POIs JSON</button>
+        <button type="button" id="btn-close-sop" class="btn btn-primary">Got It</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Mobile On-Site AR Camera Overlay (Bonus Deliverable) -->
+  <div id="ar-overlay" class="ar-overlay hidden">
+    <video id="ar-camera-video" autoplay playsinline muted></video>
+    <canvas id="ar-hud-canvas"></canvas>
+    <div class="ar-top-bar">
+      <div class="ar-status">
+        <span class="pulse-dot"></span>
+        <span id="ar-status-text">LIVE AR NAVIGATION • Point camera at walkway</span>
+      </div>
+      <button id="btn-exit-ar" class="btn btn-danger btn-sm">✕ Exit AR</button>
+    </div>
+    <div class="ar-bottom-card">
+      <div id="ar-direction-banner" class="ar-direction">⬆️ Walk Straight Ahead</div>
+      <div id="ar-sub-info" class="ar-sub">Select a POI to see live 3D camera directional arrows</div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
